@@ -1,31 +1,36 @@
+name: seminario10
+
 services:
   mongodb:
     image: mongo:7
-    container_name: seminario_mongo
+    container_name: seminario10-mongodb
     restart: unless-stopped
-    volumes:
-      - mongo_data:/data/db
     networks:
       - seminario-net
 
   api:
-    build: ./EA-Seminari6-Angular-BackOffice-API
-    container_name: seminario_api
+    image: ghcr.io/mbakkali28/ea-seminari10-devops-backend:latest
+    container_name: seminario10-api
     restart: unless-stopped
     ports:
       - "1337:1337"
     environment:
+      MONGO_URL: "mongodb://mongodb:27017/${MONGO_DB:-seminari7}"
+      # El middleware de CORS acepta un solo origen.
+      CORS_ORIGIN: "${CORS_ORIGIN:-*}"
       SERVER_PORT: 1337
-      MONGO_URL: mongodb://mongodb:27017/seminari5
-      CORS_ORIGIN: "*"
+      JWT_SECRET: "${JWT_SECRET:?falta JWT_SECRET en el fichero de entorno}"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?falta JWT_REFRESH_SECRET en el fichero de entorno}"
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-15m}"
+      JWT_REFRESH_EXPIRES_IN: "${JWT_REFRESH_EXPIRES_IN:-7d}"
     depends_on:
       - mongodb
     networks:
       - seminario-net
 
-  backoffice:
-    build: ./EA-Seminari6-Angular-BackOffice
-    container_name: seminario_backoffice
+  angular:
+    image: ghcr.io/alikoubiiss/devop:latest
+    container_name: seminario10-angular
     restart: unless-stopped
     ports:
       - "4200:80"
@@ -34,8 +39,16 @@ services:
     networks:
       - seminario-net
 
-volumes:
-  mongo_data:
+  react:
+    image: ghcr.io/mbakkali28/ea-seminari10-devops-react:latest
+    container_name: seminario10-react
+    restart: unless-stopped
+    ports:
+      - "4300:80"
+    depends_on:
+      - api
+    networks:
+      - seminario-net
 
 networks:
   seminario-net:
