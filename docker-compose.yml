@@ -1,0 +1,42 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: seminario_mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - seminario-net
+
+  api:
+    build: ./EA-Seminari6-Angular-BackOffice-API
+    container_name: seminario_api
+    restart: unless-stopped
+    ports:
+      - "1337:1337"
+    environment:
+      SERVER_PORT: 1337
+      MONGO_URL: mongodb://mongodb:27017/seminari5
+      CORS_ORIGIN: "*"
+    depends_on:
+      - mongodb
+    networks:
+      - seminario-net
+
+  backoffice:
+    build: ./EA-Seminari6-Angular-BackOffice
+    container_name: seminario_backoffice
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+    networks:
+      - seminario-net
+
+volumes:
+  mongo_data:
+
+networks:
+  seminario-net:
+    driver: bridge
