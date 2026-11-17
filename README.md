@@ -10,7 +10,7 @@ push. Este repo no tiene codigo de aplicacion: solo compone esas imagenes.
 
 | Servicio | Imagen | Puerto en tu maquina | Para que |
 |---|---|---|---|
-| `mongodb` | `mongo:7` | interno | Base de datos de la API |
+| `mongodb` | `mongo:8` | interno | Base de datos de la API |
 | `api` | `ghcr.io/mbakkali28/ea-seminari10-devops-backend:latest` | `1337` | API REST + Socket.IO |
 | `angular` | `ghcr.io/alikoubiiss/devop:latest` | `4200` | Backoffice en Angular |
 | `react` | `ghcr.io/mbakkali28/ea-seminari10-devops-react:latest` | `4300` | Backoffice en React |
@@ -38,15 +38,39 @@ Las imagenes de ghcr.io nacen **privadas**. Para que `docker compose up` las pue
 o se ponen publicas (GitHub > Packages > el paquete > Package settings > Change visibility), o se hace
 `docker login ghcr.io` antes con un token que tenga `read:packages`.
 
-La primera vez la base de datos esta vacia. Los datos de ejemplo se cargan desde el repo del backend,
-clonado aparte y apuntando a este Mongo:
+Los datos de ejemplo viven en el repo del backend (`src/seed-data.ts`). Como Mongo **no publica** el puerto
+27017 al host, el seed se corre dentro de la red del compose, con el mismo `MONGO_DB` que el `.env` (aqui,
+`seminari10`):
 
 ```
-MONGO_URL=mongodb://127.0.0.1:27017/seminari7 npm run seed
+docker run --rm --network seminario10_seminario-net \
+  -v "$PWD/../EA-Seminari10-DevOps-Backend:/app" -v /app/node_modules -w /app \
+  -e JWT_SECRET=cualquier-cosa-de-32-caracteres -e JWT_REFRESH_SECRET=otra-cosa-de-32-caracteres \
+  node:22-bookworm-slim sh -c 'npm ci && MONGO_URL=mongodb://mongodb:27017/seminari10 npm run seed'
 ```
+
+El seed solo inserta si la base esta vacia; para rehacerla, `npm run seed -- --reset` (borra usuarios,
+autores y libros de esa base). Los dos secretos se pasan solo porque la config del backend los exige al
+arrancar, el seed no los usa.
 
 Los scripts `seed` y `migrate-indexes` no van dentro de la imagen (necesitan `tsx`, que es dependencia de
 desarrollo).
+
+## Datos y persistencia
+
+Mongo guarda sus datos en el volumen de Docker `mongo-data`, montado en `/data/db`. El volumen sobrevive a
+`docker compose down` y a recrear el contenedor, asi que los datos no se pierden al volver a levantar el
+compose. Solo se borran si se ejecuta `docker compose down -v` (o `docker volume rm seminario10_mongo-data`).
+
+Usuarios de ejemplo para entrar en los backoffices, con la contraseña `seminari7`:
+
+| Correo | Rol |
+|---|---|
+| `admin@example.com` | `admin` |
+| `user@example.com` | `user` |
+
+Para rehacer los datos de ejemplo: `docker compose down -v`, volver a levantar el compose y ejecutar el
+seed de arriba.
 
 ## Local o produccion
 

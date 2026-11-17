@@ -2,9 +2,11 @@ name: seminario10
 
 services:
   mongodb:
-    image: mongo:7
+    image: mongo:8
     container_name: seminario10-mongodb
     restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
     networks:
       - seminario-net
 
@@ -53,3 +55,6 @@ services:
 networks:
   seminario-net:
     driver: bridge
+
+volumes:
+  mongo-data:
